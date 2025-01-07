@@ -30,10 +30,9 @@ public class IspitController : ControllerBase
     }
 
     [HttpPost("PocniIzdavanje/{idKnjige}/{idBiblioteke}")]
-    public async Task<ActionResult> DodajIzdavanje(int idKnjige,int idBiblioteke)
+    public async Task<ActionResult> DodajIzdavanje([FromBody]Izdavanje i,int idKnjige,int idBiblioteke)
     {
         DateTime vracanje=new DateTime(3000,01,01);
-        Izdavanje? i = null;
 
         var knjiga = await Context.Knjiga.FindAsync(idKnjige);
         var biblioteka=await Context.Biblioteka.FindAsync(idBiblioteke);
@@ -43,11 +42,11 @@ public class IspitController : ControllerBase
         if (biblioteka == null)
             return BadRequest("Biblioteka ne postoji");
 
-        var izdate=await Context.Izdavanje.Include(x=>x.Knjiga)
-            .Where(x=>x.Knjiga!.Id==idKnjige && DateTime.Compare(x.VremeVracanja,vracanje)==0).ToListAsync();
+        //var izdate=await Context.Izdavanje.Include(x=>x.Knjiga)
+        //    .Where(x=>x.Knjiga!.Id==idKnjige && DateTime.Compare(x.VremeVracanja,vracanje)==0).FirstOrDefaultAsync();
 
-        if (izdate != null)
-            return BadRequest("Knjiga nije vracena");
+        //if (izdate != null)
+        //    return BadRequest($"{izdate}");
 
         i.Knjiga = knjiga;
         i.Biblioteka = biblioteka;
@@ -63,11 +62,11 @@ public class IspitController : ControllerBase
     [HttpPut("ZavrsiIzdavanje/{idKnjige}/{idBiblioteke}")]
     public async Task<ActionResult> ZavrsiIzdavanje(int idBiblioteke,int idKnjige)
     {
-
+        DateTime vracanje = new DateTime(3000, 01, 01);
 
         var izdavanje = await Context.Izdavanje.Include(x => x.Knjiga)
             .Include(x => x.Biblioteka)
-            .Where(x => x.Knjiga!.Id == idKnjige && x.Biblioteka!.Id == idBiblioteke).FirstOrDefaultAsync();
+            .Where(x => x.Knjiga!.Id == idKnjige && x.Biblioteka!.Id == idBiblioteke && DateTime.Compare(vracanje,x.VremeVracanja)==0).FirstOrDefaultAsync();
 
         if (izdavanje == null)
             return BadRequest("Izdavanje nije pocelo ili ne postoji");
@@ -77,7 +76,7 @@ public class IspitController : ControllerBase
         Context.Izdavanje.Update(izdavanje);
         await Context.SaveChangesAsync();
 
-        return Ok("Izdavanje zavrseno");
+        return Ok($"Izdavanje zavrseno");
     }
 
     [HttpGet("UkupanBrojIzdatih")]
@@ -89,5 +88,21 @@ public class IspitController : ControllerBase
         return Ok($"Broj trenutno izdatih knjiga je: {brojIzdatih}");
     }
 
+    [HttpGet("NajcitanijiAutor")]
+    public async Task<ActionResult> NajcitanijiAutor()
+    {
+        var autori = await Context.Izdavanje.Include(x => x.Knjiga)
+            //.OrderByDescending(x => x.Knjiga!.Autor)
+            .GroupBy(x => x.Knjiga!.Autor)
+            .Select(x=> new {
+                Autor=x.Key,
+                BrojIzdanja=x.Count()
+            })
+            .OrderByDescending(x => x.BrojIzdanja).FirstOrDefaultAsync();
+            
+                
+
+        return Ok($"Najcitaniji autor je {autori!.Autor}");
+    }
 
 }

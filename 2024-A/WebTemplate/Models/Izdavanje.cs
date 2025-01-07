@@ -7,7 +7,6 @@ namespace WebTemplate.Models
     {
         [Key]
         public int Id { get; set; }
-        public required string Name { get; set; }
 
         public DateTime VremeIzdavanja { get; set; }
 
