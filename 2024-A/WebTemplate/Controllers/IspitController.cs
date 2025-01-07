@@ -80,4 +80,14 @@ public class IspitController : ControllerBase
         return Ok("Izdavanje zavrseno");
     }
 
+    [HttpGet("UkupanBrojIzdatih")]
+    public async Task<ActionResult> UkupanBrojIzdatih()
+    {
+        DateTime vracanje = new DateTime(3000, 01, 01);
+        int brojIzdatih=await Context.Izdavanje.Include(x=>x.Knjiga).Where(x=> DateTime.Compare(x.VremeVracanja, vracanje) == 0).CountAsync();
+
+        return Ok($"Broj trenutno izdatih knjiga je: {brojIzdatih}");
+    }
+
+
 }
